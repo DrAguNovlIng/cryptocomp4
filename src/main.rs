@@ -20,7 +20,7 @@ fn main() {
     let mut bob = Bob::new();
 
     dealer.init();
-    alice.init(0b110, dealer.rand_a());
+    alice.init(0b100, dealer.rand_a());
     bob.init(0b111, dealer.rand_b());
     bob.receive(alice.send());
     alice.receive(bob.send());

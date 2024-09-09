@@ -1,2 +1,5 @@
-# cryptocomp2
-cryptographic computing assignment 2
+# Cryptographic Computing Assignment 2
+To run program do the following:
+- cargo build
+- cargo run
+
