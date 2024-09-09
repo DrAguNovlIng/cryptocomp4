@@ -20,13 +20,16 @@ fn main() {
     let mut bob = Bob::new();
 
     dealer.init();
-    alice.init(0b100, dealer.rand_a());
-    bob.init(0b111, dealer.rand_b());
+    alice.init(0b111, dealer.rand_a());
+    bob.init(0b000, dealer.rand_b());
     bob.receive(alice.send());
     alice.receive(bob.send());
     let z = alice.output();
 
-    println!("z is {}", z)
+    println!("z is {}", z);
+
+    // could probably make a few tests?
+    assert_eq!(z, 1)
 
 }
 
