@@ -3,3 +3,4 @@ We have written the tests into the main function, so simply running ```cargo run
 
 Alternatively open whichever IDE you use and run the main function.
 
+Building the project shouldn't be necessary as ```cargo run``` should do so automatically, but if it for whatever reason doesn't, then run ```cargo build```
