@@ -1,12 +1,11 @@
-use cc::{TrustedDealer, Alice, Bob};
 
-fn main() {
-    // This main method runs the tests from the week-2-tests.rs file, it can also be run using the command `cargo test`
-    // For the implementation of the structs and methods, check the lib.rs file
-    // First bit indicates A, second bit B, last bit +/-
-    // Example: 001 = O+, 110 = AB-
-    // Truth table goes: 000  001  010  011  100  101  110  111 (left to right, and up to down)
-    let truth_table: [[u8; 8]; 8] = [
+extern crate cc;
+
+pub use cc::{TrustedDealer, Alice, Bob};
+
+#[test]
+    fn it_works() {
+        let truth_table: [[u8; 8]; 8] = [
         [1, 0, 0, 0, 0, 0, 0, 0],
         [1, 1, 0, 0, 0, 0, 0, 0],
         [1, 0, 1, 0, 0, 0, 0, 0],
@@ -21,7 +20,7 @@ fn main() {
     let mut alice = Alice::new();
     let mut bob = Bob::new();
 
-    // Tests for every combination of inputs, using the implementation example presented in the assignment exercise
+    // Tests
     for i in 0..8 {
         for j in 0..8 {
             dealer.init();
@@ -35,4 +34,4 @@ fn main() {
         }
     }
     println!("All tests passed successfully!")
-}
+    }
