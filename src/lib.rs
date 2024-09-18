@@ -8,7 +8,10 @@ pub struct TrustedDealer {
 }
 
 pub struct Alice {
-    z : u8,
+    z_own_share: u8,
+    z_their_share: u8,
+    z_temp_own_share: u8,
+    z_temp_their_share: u8,
     has_output: bool,
     x_a: u8,
     x_b: u8,
@@ -21,12 +24,25 @@ pub struct Alice {
     x_a_their_share: u8,
     x_b_their_share: u8,
     x_r_their_share: u8,
+    y_a_own_share: u8,
+    y_b_own_share: u8,
+    y_r_own_share: u8,
+    e_own_share: u8,
+    d_own_share: u8,
+    e_their_share: u8,
+    d_their_share: u8,
+    d: u8,
+    e: u8,
 }
 
 pub struct Bob {
     y_a: u8,
     y_b: u8,
     y_r: u8,
+    z_own_share: u8,
+    z_their_share: u8,
+    z_temp_own_share: u8,
+    z_temp_their_share: u8,
     randoms: [[u8; 3]; 5],
     progress: u8,
     y_a_own_share: u8,
@@ -35,6 +51,15 @@ pub struct Bob {
     y_a_their_share: u8,
     y_b_their_share: u8,
     y_r_their_share: u8,
+    x_a_own_share: u8,
+    x_b_own_share: u8,
+    x_r_own_share: u8,
+    e_own_share: u8,
+    d_own_share: u8,
+    e_their_share: u8,
+    d_their_share: u8,
+    d: u8,
+    e: u8,
 }
 
 // IMPLEMENTATIONS
@@ -89,7 +114,10 @@ impl Alice {
     pub fn new() -> Alice {
         Alice {
             has_output: false,
-            z: 0,
+            z_own_share: 0,
+            z_their_share: 0,
+            z_temp_own_share: 0,
+            z_temp_their_share: 0,
             x_a: 0,
             x_b: 0,
             x_r: 0,
@@ -101,6 +129,15 @@ impl Alice {
             x_a_their_share: 0,
             x_b_their_share: 0,
             x_r_their_share: 0,
+            y_a_own_share: 0,
+            y_b_own_share: 0,
+            y_r_own_share: 0,
+            d_own_share: 0,
+            e_own_share: 0,
+            d_their_share: 0,
+            e_their_share: 0,
+            d: 0,
+            e: 0,
         }
     }
 
@@ -118,33 +155,144 @@ impl Alice {
         self.x_r_own_share = self.x_r.bitxor(self.x_r_their_share);
     }
 
-    pub fn send(&mut self) -> (u8,u8) {
+    pub fn send(&mut self) -> u8 {
         self.progress += 1;
         match self.progress {
             1 => {
-                1.bitxor(self.x_a);
-                (0,0)
+                let temp = 1.bitxor(self.x_a_own_share);
+                self.d_own_share = temp.bitxor(self.randoms[0][0]);
+
+                self.e_own_share = self.y_a_own_share.bitxor(self.randoms[0][1]);
+
+                self.d_own_share
             }
             2 => {
-                (0,0)
+                self.e_own_share
             }
             3 => {
-                (0,0)
+                let temp = 1.bitxor(self.x_b_own_share);
+                self.d_own_share = temp.bitxor(self.randoms[1][0]);
+
+                self.e_own_share = self.y_b_own_share.bitxor(self.randoms[1][1]);
+
+                self.d_own_share
             }
             4 => {
-                (0,0)
+                self.e_own_share
             }
             5 => {
-                (0,0)
+                self.d_own_share = self.z_own_share.bitxor(self.randoms[2][0]);
+
+                self.e_own_share = self.z_temp_own_share.bitxor(self.randoms[2][1]);
+
+                self.d_own_share
+            }
+            6 => {
+                self.e_own_share
+            }
+            7 => {
+                let temp = 1.bitxor(self.x_r_own_share);
+                self.d_own_share = temp.bitxor(self.randoms[3][0]);
+
+                self.e_own_share = self.y_r_own_share.bitxor(self.randoms[3][1]);
+
+                self.d_own_share
+            }
+            8 => {
+                self.e_own_share
+            }
+            9 => {
+                self.d_own_share = self.z_own_share.bitxor(self.randoms[4][0]);
+
+                self.e_own_share = self.z_temp_own_share.bitxor(self.randoms[4][1]);
+
+                self.d_own_share
+            }
+            10 => {
+                self.e_own_share
             }
             _ => {
                 panic!("More than 5 iterations of send!")
             }
         }
     }
+    pub fn send_input_share(&self) -> (u8, u8, u8) {
+        (self.x_a_their_share, self.x_b_their_share, self.x_r_their_share)
+    }
 
-    pub fn receive(&mut self, (v, z_b): (u8, u8)) {
-        panic!()
+    pub fn receive_input_share(&mut self, shares: (u8, u8, u8)) {
+        self.y_a_own_share = shares[0];
+        self.y_b_own_share = shares[1];
+        self.y_r_own_share = shares[2];
+    }
+
+    pub fn receive(&mut self, input: u8) {
+        match self.progress + 1 {
+            1 => {
+                self.d = self.d_own_share.bitxor(input);
+            }
+            2 => {
+                self.e = self.e_own_share.bitxor(input);
+
+                let w_term = self.randoms[0][2];
+                let ex_term = self.e * self.x_a_own_share;
+                let dy_term = self.d * self.y_a_own_share;
+                let ed_term = self.e * self.d;
+                self.z_own_share = 1.bitxor(w_term).bitxor(ex_term).bitxor(dy_term).bitxor(ed_term);
+            }
+
+            3 => {
+                self.d = self.d_own_share.bitxor(input);
+            }
+            4 => {
+                self.e = self.e_own_share.bitxor(input);
+
+                let w_term = self.randoms[1][2];
+                let ex_term = self.e * self.x_b_own_share;
+                let dy_term = self.d * self.y_b_own_share;
+                let ed_term = self.e * self.d;
+                self.z_temp_own_share = 1.bitxor(w_term).bitxor(ex_term).bitxor(dy_term).bitxor(ed_term);
+            }
+            5 => {
+                self.d = self.d_own_share.bitxor(input);
+            }
+            6 => {
+                self.e = self.e_own_share.bitxor(input);
+
+                let w_term = self.randoms[2][2];
+                let ex_term = self.e * self.z_own_share;
+                let dy_term = self.d * self.z_temp_own_share;
+                let ed_term = self.e * self.d;
+                self.z_own_share = w_term.bitxor(ex_term).bitxor(dy_term).bitxor(ed_term);
+            }
+            7 => {
+                self.d = self.d_own_share.bitxor(input);
+            }
+            8 => {
+                self.e = self.e_own_share.bitxor(input);
+
+                let w_term = self.randoms[3][2];
+                let ex_term = self.e * self.x_r_own_share;
+                let dy_term = self.d * self.y_r_own_share;
+                let ed_term = self.e * self.d;
+                self.z_temp_own_share = 1.bitxor(w_term).bitxor(ex_term).bitxor(dy_term).bitxor(ed_term);
+            }
+            9 => {
+                self.d = self.d_own_share.bitxor(input);
+            }
+            10 => {
+                self.e = self.e_own_share.bitxor(input);
+
+                let w_term = self.randoms[2][2];
+                let ex_term = self.e * self.z_own_share;
+                let dy_term = self.d * self.z_temp_own_share;
+                let ed_term = self.e * self.d;
+                self.z_own_share = w_term.bitxor(ex_term).bitxor(dy_term).bitxor(ed_term);
+            }
+            _ => {
+                panic!("More than 5 iterations of receive!")
+            }
+        }
     }
 
     pub fn output(&self) -> u8 {
@@ -158,6 +306,10 @@ impl Bob {
             y_a: 0,
             y_b: 0,
             y_r: 0,
+            z_own_share: 0,
+            z_their_share: 0,
+            z_temp_own_share: 0,
+            z_temp_their_share: 0,
             randoms: [[0; 3]; 5],
             progress: 0,
             y_a_own_share: 0,
@@ -166,6 +318,15 @@ impl Bob {
             y_a_their_share: 0,
             y_b_their_share: 0,
             y_r_their_share: 0,
+            x_a_own_share: 0,
+            x_b_own_share: 0,
+            x_r_own_share: 0,
+            d: 0,
+            e: 0,
+            d_own_share: 0,
+            e_own_share: 0,
+            d_their_share: 0,
+            e_their_share: 0,
         }
     }
 
@@ -182,24 +343,68 @@ impl Bob {
         self.y_r_their_share = rng.gen_range(0..=1);
         self.y_r_own_share = self.y_r.bitxor(self.y_r_their_share);
     }
+    pub fn send_input_share(&self) -> (u8, u8, u8) {
+        (self.y_a_their_share, self.y_b_their_share, self.y_r_their_share)
+    }
 
-    pub fn send(&mut self) -> (u8, u8) {
+    pub fn receive_input_share(&mut self, shares: (u8, u8, u8)) {
+        self.x_a_own_share = shares[0];
+        self.x_b_own_share = shares[1];
+        self.x_r_own_share = shares[2];
+    }
+
+    pub fn send(&mut self) -> u8 {
         self.progress += 1;
         match self.progress {
             1 => {
-                (0,0)
+                self.d_own_share = self.x_a_own_share.bitxor(self.randoms[0][0]);
+
+                self.e_own_share = self.y_a_own_share.bitxor(self.randoms[0][1]);
+
+                self.d_own_share
             }
             2 => {
-                (0,0)
+                self.e_own_share
             }
             3 => {
-                (0,0)
+                self.d_own_share = self.x_b_own_share.bitxor(self.randoms[1][0]);
+
+                self.e_own_share = self.y_b_own_share.bitxor(self.randoms[1][1]);
+
+                self.d_own_share
             }
             4 => {
-                (0,0)
+                self.e_own_share
             }
             5 => {
-                (0,0)
+                self.d_own_share = self.z_own_share.bitxor(self.randoms[2][0]);
+
+                self.e_own_share = self.z_temp_own_share.bitxor(self.randoms[2][1]);
+
+                self.d_own_share
+            }
+            6 => {
+                self.e_own_share
+            }
+            7 => {
+                self.d_own_share = self.x_r_own_share.bitxor(self.randoms[3][0]);
+
+                self.e_own_share = self.y_r_own_share.bitxor(self.randoms[3][1]);
+
+                self.d_own_share
+            }
+            8 => {
+                self.e_own_share
+            }
+            9 => {
+                self.d_own_share = self.z_own_share.bitxor(self.randoms[4][0]);
+
+                self.e_own_share = self.z_temp_own_share.bitxor(self.randoms[4][1]);
+
+                self.d_own_share
+            }
+            10 => {
+                self.e_own_share
             }
             _ => {
                 panic!("More than 5 iterations of send!")
@@ -207,8 +412,73 @@ impl Bob {
         }
     }
 
-    pub fn receive(&mut self, u: u8) {
-        panic!()
+    pub fn receive(&mut self, input: u8) {
+        match self.progress + 1 {
+            1 => {
+                self.d = self.d_own_share.bitxor(input);
+            }
+            2 => {
+                self.e = self.e_own_share.bitxor(input);
+
+                let w_term = self.randoms[0][2];
+                let ex_term = self.e * self.x_a_own_share;
+                let dy_term = self.d * self.y_a_own_share;
+                let ed_term = self.e * self.d;
+                self.z_own_share = w_term.bitxor(ex_term).bitxor(dy_term).bitxor(ed_term);
+            }
+
+            3 => {
+                self.d = self.d_own_share.bitxor(input);
+            }
+            4 => {
+                self.e = self.e_own_share.bitxor(input);
+
+                let w_term = self.randoms[1][2];
+                let ex_term = self.e * self.x_b_own_share;
+                let dy_term = self.d * self.y_b_own_share;
+                let ed_term = self.e * self.d;
+                self.z_temp_own_share = w_term.bitxor(ex_term).bitxor(dy_term).bitxor(ed_term);
+            }
+            5 => {
+                self.d = self.d_own_share.bitxor(input);
+            }
+            6 => {
+                self.e = self.e_own_share.bitxor(input);
+
+                let w_term = self.randoms[2][2];
+                let ex_term = self.e * self.z_own_share;
+                let dy_term = self.d * self.z_temp_own_share;
+                let ed_term = self.e * self.d;
+                self.z_own_share = w_term.bitxor(ex_term).bitxor(dy_term).bitxor(ed_term);
+            }
+            7 => {
+                self.d = self.d_own_share.bitxor(input);
+            }
+            8 => {
+                self.e = self.e_own_share.bitxor(input);
+
+                let w_term = self.randoms[3][2];
+                let ex_term = self.e * self.x_r_own_share;
+                let dy_term = self.d * self.y_r_own_share;
+                let ed_term = self.e * self.d;
+                self.z_temp_own_share = w_term.bitxor(ex_term).bitxor(dy_term).bitxor(ed_term);
+            }
+            9 => {
+                self.d = self.d_own_share.bitxor(input);
+            }
+            10 => {
+                self.e = self.e_own_share.bitxor(input);
+
+                let w_term = self.randoms[2][2];
+                let ex_term = self.e * self.z_own_share;
+                let dy_term = self.d * self.z_temp_own_share;
+                let ed_term = self.e * self.d;
+                self.z_own_share = w_term.bitxor(ex_term).bitxor(dy_term).bitxor(ed_term);
+            }
+            _ => {
+                panic!("More than 5 iterations of receive!")
+            }
+        }
     }
 }
 /*
@@ -225,6 +495,3 @@ fn modulo(a: u8, b: u8) -> u8 {
     ((a % b) + b) % b
 }
 
-pub fn send_input_share(&self) -> _ {
-        todo!()
-    }
