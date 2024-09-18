@@ -92,8 +92,8 @@ impl TrustedDealer {
         let mut result: [[u8; 3]; 5] = [[0; 3]; 5];
         for i in 0..5 {
             result[i][0] = self.randoms[i][0];
-            result[i][2] = self.randoms[i][1];
-            result[i][4] = self.randoms[i][2];
+            result[i][1] = self.randoms[i][2];
+            result[i][2] = self.randoms[i][4];
         }
         result
     }
@@ -102,9 +102,9 @@ impl TrustedDealer {
     pub fn rand_b(&self) -> [[u8; 3]; 5] {
         let mut result: [[u8; 3]; 5] = [[0; 3]; 5];
         for i in 0..5 {
-            result[i][1] = self.randoms[i][0];
-            result[i][3] = self.randoms[i][1];
-            result[i][5] = self.randoms[i][2];
+            result[i][0] = self.randoms[i][1];
+            result[i][1] = self.randoms[i][3];
+            result[i][2] = self.randoms[i][5];
         }
         result
     }
@@ -139,6 +139,10 @@ impl Alice {
             d: 0,
             e: 0,
         }
+    }
+
+    pub fn has_output(&self) -> bool {
+        self.has_output
     }
 
     pub fn init(&mut self, x: u8, randoms: [[u8; 3]; 5]) {
@@ -211,8 +215,11 @@ impl Alice {
             10 => {
                 self.e_own_share
             }
+            11 => {
+                0 //Dummy value
+            }
             _ => {
-                panic!("More than 5 iterations of send!")
+                panic!("Nothing to send!")
             }
         }
     }
@@ -221,9 +228,9 @@ impl Alice {
     }
 
     pub fn receive_input_share(&mut self, shares: (u8, u8, u8)) {
-        self.y_a_own_share = shares[0];
-        self.y_b_own_share = shares[1];
-        self.y_r_own_share = shares[2];
+        self.y_a_own_share = shares.0;
+        self.y_b_own_share = shares.1;
+        self.y_r_own_share = shares.2;
     }
 
     pub fn receive(&mut self, input: u8) {
@@ -283,20 +290,24 @@ impl Alice {
             10 => {
                 self.e = self.e_own_share.bitxor(input);
 
-                let w_term = self.randoms[2][2];
+                let w_term = self.randoms[4][2];
                 let ex_term = self.e * self.z_own_share;
                 let dy_term = self.d * self.z_temp_own_share;
                 let ed_term = self.e * self.d;
                 self.z_own_share = w_term.bitxor(ex_term).bitxor(dy_term).bitxor(ed_term);
             }
+            11 => {
+                self.z_their_share = input;
+                self.has_output = true;
+            }
             _ => {
-                panic!("More than 5 iterations of receive!")
+                //do nothing
             }
         }
     }
 
     pub fn output(&self) -> u8 {
-        self.z
+        self.z_own_share.bitxor(self.z_their_share)
     }
 }
 
@@ -348,9 +359,9 @@ impl Bob {
     }
 
     pub fn receive_input_share(&mut self, shares: (u8, u8, u8)) {
-        self.x_a_own_share = shares[0];
-        self.x_b_own_share = shares[1];
-        self.x_r_own_share = shares[2];
+        self.x_a_own_share = shares.0;
+        self.x_b_own_share = shares.1;
+        self.x_r_own_share = shares.2;
     }
 
     pub fn send(&mut self) -> u8 {
@@ -406,8 +417,11 @@ impl Bob {
             10 => {
                 self.e_own_share
             }
+            11 => {
+                self.z_own_share
+            }
             _ => {
-                panic!("More than 5 iterations of send!")
+                panic!("Nothing to send!")
             }
         }
     }
@@ -469,29 +483,15 @@ impl Bob {
             10 => {
                 self.e = self.e_own_share.bitxor(input);
 
-                let w_term = self.randoms[2][2];
+                let w_term = self.randoms[4][2];
                 let ex_term = self.e * self.z_own_share;
                 let dy_term = self.d * self.z_temp_own_share;
                 let ed_term = self.e * self.d;
                 self.z_own_share = w_term.bitxor(ex_term).bitxor(dy_term).bitxor(ed_term);
             }
             _ => {
-                panic!("More than 5 iterations of receive!")
+                //do nothing
             }
         }
     }
 }
-/*
-    Helper Functions
-*/
-
-fn local_xor(a: u8, b: u8) -> u8 {
-    a.bitxor(b)
-}
-
-
-// We made our own modulo function as Rust doesn't have one by default
-fn modulo(a: u8, b: u8) -> u8 {
-    ((a % b) + b) % b
-}
-
