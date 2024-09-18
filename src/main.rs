@@ -17,7 +17,7 @@ fn main() {
         [1, 1, 1, 1, 1, 1, 1, 1],
     ];
 
-    let mut dealer = TrustedDealer::new(truth_table);
+    let mut dealer = TrustedDealer::new();
     let mut alice = Alice::new();
     let mut bob = Bob::new();
 
@@ -27,8 +27,12 @@ fn main() {
             dealer.init();
             alice.init(i, dealer.rand_a());
             bob.init(j, dealer.rand_b());
-            bob.receive(alice.send());
-            alice.receive(bob.send());
+            bob.receive_input_share(alice.send_input_share());
+            alice.receive_input_share(bob.send_input_share());
+            while !alice.output() {
+                bob.receive(alice.send());
+                alice.receive(bob.send());
+            }
             let z = alice.output();
 
             assert_eq!(z, truth_table[i as usize][j as usize]);
