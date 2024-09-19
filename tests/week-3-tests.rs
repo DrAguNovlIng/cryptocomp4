@@ -10,7 +10,7 @@ pub use cc::{TrustedDealer, Alice, Bob};
     // First bit indicates A, second bit B, last bit +/-
     // Example: 001 = O+, 110 = AB-
     // Truth table goes: 000  001  010  011  100  101  110  111 (left to right, and up to down)
-    let truth_table: [[u8; 8]; 8] = [
+    let true_truth_table: [[u8; 8]; 8] = [
         [1, 0, 0, 0, 0, 0, 0, 0],
         [1, 1, 0, 0, 0, 0, 0, 0],
         [1, 0, 1, 0, 0, 0, 0, 0],
@@ -19,6 +19,17 @@ pub use cc::{TrustedDealer, Alice, Bob};
         [1, 1, 0, 0, 1, 1, 0, 0],
         [1, 0, 1, 0, 1, 0, 1, 0],
         [1, 1, 1, 1, 1, 1, 1, 1],
+    ];
+
+    let mut calculated_truth_table: [[u8; 8]; 8] = [
+        [2, 2, 2, 2, 2, 2, 2, 2],
+        [2, 2, 2, 2, 2, 2, 2, 2],
+        [2, 2, 2, 2, 2, 2, 2, 2],
+        [2, 2, 2, 2, 2, 2, 2, 2],
+        [2, 2, 2, 2, 2, 2, 2, 2],
+        [2, 2, 2, 2, 2, 2, 2, 2],
+        [2, 2, 2, 2, 2, 2, 2, 2],
+        [2, 2, 2, 2, 2, 2, 2, 2],
     ];
 
     let mut dealer = TrustedDealer::new();
@@ -38,9 +49,15 @@ pub use cc::{TrustedDealer, Alice, Bob};
                 alice.receive(bob.send());
             }
             let z = alice.output();
-
-            assert_eq!(z, truth_table[i as usize][j as usize]);
+            calculated_truth_table[i as usize][j as usize] = z;
         }
     }
+
+    for i in 0..8 {
+        for j in 0..8 {
+            assert_eq!(calculated_truth_table[i as usize][j as usize], true_truth_table[i as usize][j as usize]);
+        }
+    }
+
     println!("All tests passed successfully!")
     }

@@ -149,7 +149,7 @@ impl Alice {
                 //step 4 open d, by sending share to Bob
                 self.d.alice
             }
-            2 => {
+            2 | 4 | 6 | 8 | 10 => {
                 //step 5 open e, by sending share to Bob
                 self.e.alice
             }
@@ -160,18 +160,12 @@ impl Alice {
                 self.e.alice = self.alice_share_of_bob_b.bitxor(randomness.v);
                 self.d.alice
             }
-            4 => {
-                self.e.alice
-            }
             5 => {
                 //all these steps are the same as above, but with r
                 let randomness = self.randomness_from_dealer[2];
                 self.d.alice = self.input_alice_r.alice.bitxor(randomness.u);
                 self.e.alice = self.alice_share_of_bob_r.bitxor(randomness.v);
                 self.d.alice
-            }
-            6 => {
-                self.e.alice
             }
             7 => {
                 //at this point we have computed the large terms z_1, z_2 and z_3, and we need to compute the AND of the first two
@@ -180,18 +174,12 @@ impl Alice {
                 self.e.alice = self.z_2.alice.bitxor(randomness.v);
                 self.d.alice
             }
-            8 => {
-                self.e.alice
-            }
             9 => {
                 //we now compute the AND of the last two terms (z_1 AND z_2 saved in z_1)
                 let randomness = self.randomness_from_dealer[4];
                 self.d.alice = self.z_1.alice.bitxor(randomness.u);
                 self.e.alice = self.z_3.alice.bitxor(randomness.v);
                 self.d.alice
-            }
-            10 => {
-                self.e.alice
             }
             _ => {
                 0 //Dummy value
@@ -211,7 +199,7 @@ impl Alice {
     pub fn receive(&mut self, input: u8) {
         println!("ALICE RECEIVE {}", self.progress);
         match self.progress {
-            1 => {
+            1 | 3 | 5 | 7 | 9 => {
                 //We receive share of d from Bob
                 self.d.bob = input;
             }
@@ -229,12 +217,8 @@ impl Alice {
                 //We now XOR with 1, so we have the first of the 3 big terms
                 self.z_1.alice = 1.bitxor(self.z_1.alice);
             }
-
-            3 => {
-                //same as above but with b
-                self.d.bob = input;
-            }
             4 => {
+                //same as above but with b
                 self.e.bob = input;
 
                 let x = 1.bitxor(self.input_alice_b.alice);
@@ -246,11 +230,8 @@ impl Alice {
                 //We now XOR with 1, so we have the second of the 3 big terms
                 self.z_2.alice = 1.bitxor(self.z_2.alice);
             }
-            5 => {
-                //same as above but with r
-                self.d.bob = input;
-            }
             6 => {
+                //same as above but with r
                 self.e.bob = input;
                 let x = 1.bitxor(self.input_alice_r.alice);
                 let y = self.alice_share_of_bob_r;
@@ -261,11 +242,8 @@ impl Alice {
                 //We now XOR with 1, so we have the third of the 3 big terms
                 self.z_3.alice = 1.bitxor(self.z_3.alice);
             }
-            7 => {
-                //We now compute the AND of the first two big terms (z_1 AND z_2), and save it in z_1
-                self.d.bob = input;
-            }
             8 => {
+                //We now compute the AND of the first two big terms (z_1 AND z_2), and save it in z_1
                 self.e.bob = input;
                 let x = self.z_1.alice;
                 let y = self.z_2.alice;
@@ -274,11 +252,8 @@ impl Alice {
                 let e = self.e.value();
                 self.z_1.alice = w_term.bitxor(e * x).bitxor(d * y).bitxor(e * d);
             }
-            9 => {
-                //We now compute the AND of the final terms (z_1 AND z_3), and save it in z_1
-                self.d.bob = input;
-            }
             10 => {
+                //We now compute the AND of the final terms (z_1 AND z_3), and save it in z_1
                 self.e.bob = input;
                 let x = self.z_1.alice;
                 let y = self.z_3.alice;
@@ -349,7 +324,7 @@ impl Bob {
                 self.e.bob = self.bobs_share_of_alice_a.bitxor(randomness.v);
                 self.d.bob
             }
-            2 => {
+            2 | 4 | 6 | 8 | 10 => {
                 self.e.bob
             }
             3 => {
@@ -358,17 +333,11 @@ impl Bob {
                 self.e.bob = self.bobs_share_of_alice_b.bitxor(randomness.v);
                 self.d.bob
             }
-            4 => {
-                self.e.bob
-            }
             5 => {
                 let randomness = self.randomness_from_dealer[2];
                 self.d.bob = self.input_bob_r.bob.bitxor(randomness.u);
                 self.e.bob = self.bobs_share_of_alice_r.bitxor(randomness.v);
                 self.d.bob
-            }
-            6 => {
-                self.e.bob
             }
             7 => {
                 let randomness = self.randomness_from_dealer[3];
@@ -376,17 +345,11 @@ impl Bob {
                 self.e.bob = self.z_2.bob.bitxor(randomness.v);
                 self.d.bob
             }
-            8 => {
-                self.e.bob
-            }
             9 => {
                 let randomness = self.randomness_from_dealer[4];
                 self.d.bob = self.z_1.bob.bitxor(randomness.u);
                 self.e.bob = self.z_3.bob.bitxor(randomness.v);
                 self.d.bob
-            }
-            10 => {
-                self.e.bob
             }
             11 => {
                 self.z_1.bob
@@ -400,7 +363,7 @@ impl Bob {
     pub fn receive(&mut self, input: u8) {
         println!("BOB RECEIVE {}", self.progress + 1);
         match self.progress + 1 {
-            1 => {
+            1 | 3 | 5 | 7 | 9 => {
                 //input is the share of d from Alice
                 self.d.alice = input;
             }
@@ -414,10 +377,6 @@ impl Bob {
                 let e = self.e.value();
                 self.z_1.bob = w_term.bitxor(e * x).bitxor(d * y).bitxor(e * d);
             }
-
-            3 => {
-                self.d.alice = input;
-            }
             4 => {
                 self.e.alice = input;
                 let w_term = self.randomness_from_dealer[1].w;
@@ -426,9 +385,6 @@ impl Bob {
                 let d = self.d.value();
                 let e = self.e.value();
                 self.z_2.bob = w_term.bitxor(e * x).bitxor(d * y).bitxor(e * d);
-            }
-            5 => {
-                self.d.alice = input;
             }
             6 => {
                 self.e.alice = input;
@@ -439,9 +395,6 @@ impl Bob {
                 let e = self.e.value();
                 self.z_3.bob = w_term.bitxor(e * x).bitxor(d * y).bitxor(e * d);
             }
-            7 => {
-                self.d.alice = input;
-            }
             8 => {
                 self.e.alice = input;
                 let w_term = self.randomness_from_dealer[3].w;
@@ -450,9 +403,6 @@ impl Bob {
                 let d = self.d.value();
                 let e = self.e.value();
                 self.z_1.bob = w_term.bitxor(e * x).bitxor(d * y).bitxor(e * d);
-            }
-            9 => {
-                self.d.alice = input;
             }
             10 => {
                 self.e.alice = input;
