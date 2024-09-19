@@ -31,9 +31,9 @@ pub struct Alice {
     z_3: SecretSharingPair,
     d: SecretSharingPair,
     e: SecretSharingPair,
-    share_of_bob_a: u8,
-    share_of_bob_b: u8,
-    share_of_bob_r: u8,
+    alice_share_of_bob_a: u8,
+    alice_share_of_bob_b: u8,
+    alice_share_of_bob_r: u8,
     progress: u8,
     has_output: bool,
 }
@@ -48,9 +48,9 @@ pub struct Bob {
     z_3: SecretSharingPair,
     d: SecretSharingPair,
     e: SecretSharingPair,
-    share_of_alice_a: u8,
-    share_of_alice_b: u8,
-    share_of_alice_c: u8,
+    bobs_share_of_alice_a: u8,
+    bobs_share_of_alice_b: u8,
+    bobs_share_of_alice_r: u8,
     progress: u8,
 }
 
@@ -115,9 +115,9 @@ impl Alice {
             input_alice_b: SecretSharingPair::new(0),
             input_alice_r: SecretSharingPair::new(0),
             progress: 0,
-            share_of_bob_a: 0,
-            share_of_bob_b: 0,
-            share_of_bob_r: 0,
+            alice_share_of_bob_a: 0,
+            alice_share_of_bob_b: 0,
+            alice_share_of_bob_r: 0,
             d: SecretSharingPair::new(0),
             e: SecretSharingPair::new(0),
             randomness_from_dealer: [RandomnessTriple {u: 0, v: 0, w: 0}; 5],
@@ -137,6 +137,7 @@ impl Alice {
 
     pub fn send(&mut self) -> u8 {
         self.progress += 1;
+        println!("ALICE SEND {}", self.progress);
         match self.progress {
             1 => {
                 //step 1 get randomness from dealer
@@ -144,7 +145,7 @@ impl Alice {
                 //step 2 d = x XOR u
                 self.d.alice = self.input_alice_a.alice.bitxor(randomness.u);
                 //step 3 e = y XOR v
-                self.e.alice = self.share_of_bob_a.bitxor(randomness.v);
+                self.e.alice = self.alice_share_of_bob_a.bitxor(randomness.v);
                 //step 4 open d, by sending share to Bob
                 self.d.alice
             }
@@ -156,7 +157,7 @@ impl Alice {
                 //all these steps are the same as above, but with b
                 let randomness = self.randomness_from_dealer[1];
                 self.d.alice = self.input_alice_b.alice.bitxor(randomness.u);
-                self.e.alice = self.share_of_bob_b.bitxor(randomness.v);
+                self.e.alice = self.alice_share_of_bob_b.bitxor(randomness.v);
                 self.d.alice
             }
             4 => {
@@ -166,7 +167,7 @@ impl Alice {
                 //all these steps are the same as above, but with r
                 let randomness = self.randomness_from_dealer[2];
                 self.d.alice = self.input_alice_r.alice.bitxor(randomness.u);
-                self.e.alice = self.share_of_bob_r.bitxor(randomness.v);
+                self.e.alice = self.alice_share_of_bob_r.bitxor(randomness.v);
                 self.d.alice
             }
             6 => {
@@ -202,12 +203,13 @@ impl Alice {
     }
 
     pub fn receive_input_share(&mut self, shares: (u8, u8, u8)) {
-        self.share_of_bob_a = shares.0;
-        self.share_of_bob_b = shares.1;
-        self.share_of_bob_r = shares.2;
+        self.alice_share_of_bob_a = shares.0;
+        self.alice_share_of_bob_b = shares.1;
+        self.alice_share_of_bob_r = shares.2;
     }
 
     pub fn receive(&mut self, input: u8) {
+        println!("ALICE RECEIVE {}", self.progress);
         match self.progress {
             1 => {
                 //We receive share of d from Bob
@@ -219,7 +221,7 @@ impl Alice {
                 //step 6 (s)z_1 = (s)w XOR e * (s)x XOR d * (s)y XOR e * d
                 //(s) means own share, x is left side of AND, y is right side of AND
                 let x = 1.bitxor(self.input_alice_a.alice);
-                let y = self.share_of_bob_a;
+                let y = self.alice_share_of_bob_a;
                 let w_term = self.randomness_from_dealer[0].w;
                 let d = self.d.value();
                 let e = self.e.value();
@@ -236,7 +238,7 @@ impl Alice {
                 self.e.bob = input;
 
                 let x = 1.bitxor(self.input_alice_b.alice);
-                let y = self.share_of_bob_b;
+                let y = self.alice_share_of_bob_b;
                 let w_term = self.randomness_from_dealer[1].w;
                 let d = self.d.value();
                 let e = self.e.value();
@@ -251,7 +253,7 @@ impl Alice {
             6 => {
                 self.e.bob = input;
                 let x = 1.bitxor(self.input_alice_r.alice);
-                let y = self.share_of_bob_r;
+                let y = self.alice_share_of_bob_r;
                 let w_term = self.randomness_from_dealer[2].w;
                 let d = self.d.value();
                 let e = self.e.value();
@@ -311,9 +313,9 @@ impl Bob {
             z_2: SecretSharingPair::new(0),
             z_3: SecretSharingPair::new(0),
             progress: 0,
-            share_of_alice_a: 0,
-            share_of_alice_b: 0,
-            share_of_alice_c: 0,
+            bobs_share_of_alice_a: 0,
+            bobs_share_of_alice_b: 0,
+            bobs_share_of_alice_r: 0,
             d: SecretSharingPair::new(0),
             e: SecretSharingPair::new(0),
             randomness_from_dealer: [RandomnessTriple {u: 0, v: 0, w: 0}; 5],
@@ -331,51 +333,63 @@ impl Bob {
     }
 
     pub fn receive_input_share(&mut self, shares: (u8, u8, u8)) {
-        self.share_of_alice_a = shares.0;
-        self.share_of_alice_b = shares.1;
-        self.share_of_alice_c = shares.2;
+        self.bobs_share_of_alice_a = shares.0;
+        self.bobs_share_of_alice_b = shares.1;
+        self.bobs_share_of_alice_r = shares.2;
     }
 
     pub fn send(&mut self) -> u8 {
+        println!("BOB SEND {}", self.progress + 1);
         self.progress += 1;
         match self.progress {
             1 => {
+                //mostly same as alice
                 let randomness = self.randomness_from_dealer[0];
-                todo!()
+                self.d.bob = self.input_bob_a.bob.bitxor(randomness.u);
+                self.e.bob = self.bobs_share_of_alice_a.bitxor(randomness.v);
+                self.d.bob
             }
             2 => {
-                todo!()
+                self.e.bob
             }
             3 => {
                 let randomness = self.randomness_from_dealer[1];
-                todo!()
+                self.d.bob = self.input_bob_b.bob.bitxor(randomness.u);
+                self.e.bob = self.bobs_share_of_alice_b.bitxor(randomness.v);
+                self.d.bob
             }
             4 => {
-                todo!()
+                self.e.bob
             }
             5 => {
                 let randomness = self.randomness_from_dealer[2];
-                todo!()
+                self.d.bob = self.input_bob_r.bob.bitxor(randomness.u);
+                self.e.bob = self.bobs_share_of_alice_r.bitxor(randomness.v);
+                self.d.bob
             }
             6 => {
-                todo!()
+                self.e.bob
             }
             7 => {
                 let randomness = self.randomness_from_dealer[3];
-                todo!()
+                self.d.bob = self.z_1.bob.bitxor(randomness.u);
+                self.e.bob = self.z_2.bob.bitxor(randomness.v);
+                self.d.bob
             }
             8 => {
-                todo!()
+                self.e.bob
             }
             9 => {
                 let randomness = self.randomness_from_dealer[4];
-                todo!()
+                self.d.bob = self.z_1.bob.bitxor(randomness.u);
+                self.e.bob = self.z_3.bob.bitxor(randomness.v);
+                self.d.bob
             }
             10 => {
-                todo!()
+                self.e.bob
             }
             11 => {
-                todo!()
+                self.z_1.bob
             }
             _ => {
                 0 //Dummy value
@@ -384,39 +398,70 @@ impl Bob {
     }
 
     pub fn receive(&mut self, input: u8) {
+        println!("BOB RECEIVE {}", self.progress + 1);
         match self.progress + 1 {
             1 => {
-                todo!()
+                //input is the share of d from Alice
+                self.d.alice = input;
             }
             2 => {
+                //input is the share of e from Alice
+                self.e.alice = input;
                 let w_term = self.randomness_from_dealer[0].w;
-                todo!();
+                let x = self.bobs_share_of_alice_a;
+                let y = self.input_bob_a.bob;
+                let d = self.d.value();
+                let e = self.e.value();
+                self.z_1.bob = w_term.bitxor(e * x).bitxor(d * y).bitxor(e * d);
             }
 
             3 => {
-                todo!()
+                self.d.alice = input;
             }
             4 => {
+                self.e.alice = input;
                 let w_term = self.randomness_from_dealer[1].w;
-                todo!()
+                let x = self.bobs_share_of_alice_b;
+                let y = self.input_bob_b.bob;
+                let d = self.d.value();
+                let e = self.e.value();
+                self.z_2.bob = w_term.bitxor(e * x).bitxor(d * y).bitxor(e * d);
             }
             5 => {
-                todo!()
+                self.d.alice = input;
             }
             6 => {
-                todo!()
+                self.e.alice = input;
+                let w_term = self.randomness_from_dealer[2].w;
+                let x = self.bobs_share_of_alice_r;
+                let y = self.input_bob_r.bob;
+                let d = self.d.value();
+                let e = self.e.value();
+                self.z_3.bob = w_term.bitxor(e * x).bitxor(d * y).bitxor(e * d);
             }
             7 => {
-                todo!()
+                self.d.alice = input;
             }
             8 => {
-                todo!()
+                self.e.alice = input;
+                let w_term = self.randomness_from_dealer[3].w;
+                let x = self.z_1.bob;
+                let y = self.z_2.bob;
+                let d = self.d.value();
+                let e = self.e.value();
+                self.z_1.bob = w_term.bitxor(e * x).bitxor(d * y).bitxor(e * d);
             }
             9 => {
-                todo!()
+                self.d.alice = input;
             }
             10 => {
-                todo!()
+                self.e.alice = input;
+                let w_term = self.randomness_from_dealer[4].w;
+                let x = self.z_1.bob;
+                let y = self.z_3.bob;
+                let d = self.d.value();
+                let e = self.e.value();
+                self.z_1.bob = w_term.bitxor(e * x).bitxor(d * y).bitxor(e * d);
             }
             _ => {
                 //do nothing
