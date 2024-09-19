@@ -29,6 +29,9 @@ fn main() {
             bob.init(j, dealer.rand_b());
             bob.receive_input_share(alice.send_input_share());
             alice.receive_input_share(bob.send_input_share());
+
+            //Handle first AND
+
             while !alice.has_output() {
                 bob.receive(alice.send());
                 alice.receive(bob.send());
