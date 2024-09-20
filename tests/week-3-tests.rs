@@ -5,7 +5,6 @@ pub use cc::{TrustedDealer, Alice, Bob};
 
 #[test]
     fn it_works() {
-    // This main method runs the tests from the week-2-tests.rs file, it can also be run using the command `cargo test`
     // For the implementation of the structs and methods, check the lib.rs file
     // First bit indicates A, second bit B, last bit +/-
     // Example: 001 = O+, 110 = AB-
@@ -31,14 +30,14 @@ pub use cc::{TrustedDealer, Alice, Bob};
         [2, 2, 2, 2, 2, 2, 2, 2],
         [2, 2, 2, 2, 2, 2, 2, 2],
     ];
-
-    let mut dealer = TrustedDealer::new();
-    let mut alice = Alice::new();
-    let mut bob = Bob::new();
-
+    
     // Tests for every combination of inputs, using the implementation example presented in the assignment exercise
     for i in 0..8 {
         for j in 0..8 {
+            let mut dealer = TrustedDealer::new();
+            let mut alice = Alice::new();
+            let mut bob = Bob::new();
+
             dealer.init();
             alice.init(i, dealer.rand_a());
             bob.init(j, dealer.rand_b());
