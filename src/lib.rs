@@ -3,12 +3,15 @@ use core::panic;
 use std::{io::empty, ops::BitXor, ptr::null};
 
 // STRUCTS
+
+//A struct representing a secret shared value
 #[derive(Debug, Copy, Clone)]
 pub struct SecretSharingPair {
     alice: u8,
     bob: u8,
 }
 
+//Triple used to supply both parties with random values from the trusted dealer
 #[derive(Debug, Copy, Clone)]
 pub struct RandomnessTriple {
     v: u8,

@@ -17,6 +17,7 @@ fn main() {
         [1, 1, 1, 1, 1, 1, 1, 1],
     ];
 
+    //Calculated truth table by the protocol, this was used for debugging and is used to check correctness
     let mut calculated_truth_table: [[u8; 8]; 8] = [
         [2, 2, 2, 2, 2, 2, 2, 2],
         [2, 2, 2, 2, 2, 2, 2, 2],
