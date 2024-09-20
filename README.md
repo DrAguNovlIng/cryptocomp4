@@ -1,4 +1,4 @@
-# Cryptographic Computing Assignment 2
+# Cryptographic Computing Assignment 3
 We have written the tests into the main function, so simply running ```cargo run```, in the terminal will run the program and all tests.
 
 One can also run tests using ```cargo test```.
