@@ -1,10 +1,9 @@
-
 extern crate cc;
 
-pub use cc::{TrustedDealer, Alice, Bob};
+pub use cc::{Alice, Bob, TrustedDealer};
 
 #[test]
-    fn it_works() {
+fn it_works() {
     // For the implementation of the structs and methods, check the lib.rs file
     // First bit indicates A, second bit B, last bit +/-
     // Example: 001 = O+, 110 = AB-
@@ -31,7 +30,7 @@ pub use cc::{TrustedDealer, Alice, Bob};
         [2, 2, 2, 2, 2, 2, 2, 2],
         [2, 2, 2, 2, 2, 2, 2, 2],
     ];
-    
+
     // Tests for every combination of inputs, using the implementation example presented in the assignment exercise
     for i in 0..8 {
         for j in 0..8 {
@@ -55,9 +54,12 @@ pub use cc::{TrustedDealer, Alice, Bob};
 
     for i in 0..8 {
         for j in 0..8 {
-            assert_eq!(calculated_truth_table[i as usize][j as usize], true_truth_table[i as usize][j as usize]);
+            assert_eq!(
+                calculated_truth_table[i as usize][j as usize],
+                true_truth_table[i as usize][j as usize]
+            );
         }
     }
 
     println!("All tests passed successfully!")
-    }
+}

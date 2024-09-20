@@ -1,6 +1,5 @@
 use rand::Rng;
-use core::panic;
-use std::{io::empty, ops::BitXor, ptr::null};
+use std::ops::BitXor;
 
 // STRUCTS
 
@@ -16,12 +15,12 @@ pub struct SecretSharingPair {
 pub struct RandomnessTriple {
     v: u8,
     u: u8,
-    w: u8
+    w: u8,
 }
 
 pub struct TrustedDealer {
     randomness_for_alice: [RandomnessTriple; 5],
-    randomness_for_bob: [RandomnessTriple; 5]
+    randomness_for_bob: [RandomnessTriple; 5],
 }
 
 pub struct Alice {
@@ -63,20 +62,22 @@ impl SecretSharingPair {
         let mut rng = rand::thread_rng();
         let alice_share = rng.gen_range(0..=1);
         let bob_share = value.bitxor(alice_share);
-        SecretSharingPair {alice: alice_share, bob: bob_share}
+        SecretSharingPair {
+            alice: alice_share,
+            bob: bob_share,
+        }
     }
 
     pub fn value(&self) -> u8 {
-        return self.alice.bitxor(self.bob)
+        self.alice.bitxor(self.bob)
     }
-
 }
 
 impl TrustedDealer {
     pub fn new() -> TrustedDealer {
         TrustedDealer {
-            randomness_for_alice: [RandomnessTriple{u: 0, v: 0, w:0}; 5],
-            randomness_for_bob: [RandomnessTriple{u: 0, v: 0, w:0}; 5],
+            randomness_for_alice: [RandomnessTriple { u: 0, v: 0, w: 0 }; 5],
+            randomness_for_bob: [RandomnessTriple { u: 0, v: 0, w: 0 }; 5],
         }
     }
 
@@ -91,8 +92,16 @@ impl TrustedDealer {
             let v_secret = SecretSharingPair::new(v);
             let w_secret = SecretSharingPair::new(w);
 
-            self.randomness_for_alice[i] = RandomnessTriple{u: u_secret.alice, v: v_secret.alice, w: w_secret.alice};
-            self.randomness_for_bob[i] = RandomnessTriple{u: u_secret.bob, v: v_secret.bob, w: w_secret.bob};
+            self.randomness_for_alice[i] = RandomnessTriple {
+                u: u_secret.alice,
+                v: v_secret.alice,
+                w: w_secret.alice,
+            };
+            self.randomness_for_bob[i] = RandomnessTriple {
+                u: u_secret.bob,
+                v: v_secret.bob,
+                w: w_secret.bob,
+            };
         }
     }
 
@@ -123,7 +132,7 @@ impl Alice {
             alice_share_of_bob_r: 0,
             d: SecretSharingPair::new(0),
             e: SecretSharingPair::new(0),
-            randomness_from_dealer: [RandomnessTriple {u: 0, v: 0, w: 0}; 5],
+            randomness_from_dealer: [RandomnessTriple { u: 0, v: 0, w: 0 }; 5],
         }
     }
 
@@ -205,7 +214,11 @@ impl Alice {
         }
     }
     pub fn send_input_share(&self) -> (u8, u8, u8) {
-        (self.input_alice_a.bob, self.input_alice_b.bob, self.input_alice_r.bob)
+        (
+            self.input_alice_a.bob,
+            self.input_alice_b.bob,
+            self.input_alice_r.bob,
+        )
     }
 
     pub fn receive_input_share(&mut self, shares: (u8, u8, u8)) {
@@ -310,7 +323,7 @@ impl Bob {
             bobs_share_of_alice_r: 0,
             d: SecretSharingPair::new(0),
             e: SecretSharingPair::new(0),
-            randomness_from_dealer: [RandomnessTriple {u: 0, v: 0, w: 0}; 5],
+            randomness_from_dealer: [RandomnessTriple { u: 0, v: 0, w: 0 }; 5],
         }
     }
 
@@ -333,7 +346,11 @@ impl Bob {
         self.randomness_from_dealer = randoms;
     }
     pub fn send_input_share(&self) -> (u8, u8, u8) {
-        (self.input_bob_a.alice, self.input_bob_b.alice, self.input_bob_r.alice)
+        (
+            self.input_bob_a.alice,
+            self.input_bob_b.alice,
+            self.input_bob_r.alice,
+        )
     }
 
     pub fn receive_input_share(&mut self, shares: (u8, u8, u8)) {
@@ -352,9 +369,7 @@ impl Bob {
                 self.e.bob = self.input_bob_a.bob.bitxor(randomness.v);
                 self.d.bob
             }
-            2 | 4 | 6 | 8 | 10 => {
-                self.e.bob
-            }
+            2 | 4 | 6 | 8 | 10 => self.e.bob,
             3 => {
                 let randomness = self.randomness_from_dealer[1];
                 self.d.bob = self.bobs_share_of_alice_b.bitxor(randomness.u);
@@ -379,9 +394,7 @@ impl Bob {
                 self.e.bob = self.z_3.bob.bitxor(randomness.v);
                 self.d.bob
             }
-            11 => {
-                self.z_1.bob
-            }
+            11 => self.z_1.bob,
             _ => {
                 0 //Dummy value
             }

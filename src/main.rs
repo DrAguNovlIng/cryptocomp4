@@ -1,4 +1,4 @@
-use cc::{TrustedDealer, Alice, Bob};
+use cc::{Alice, Bob, TrustedDealer};
 
 fn main() {
     // This main method runs the tests from the week-3-tests.rs file, it can also be run using the command `cargo test`
@@ -28,7 +28,7 @@ fn main() {
         [2, 2, 2, 2, 2, 2, 2, 2],
         [2, 2, 2, 2, 2, 2, 2, 2],
     ];
-    
+
     // Tests for every combination of inputs, using the implementation example presented in the assignment exercise
     for i in 0..8 {
         for j in 0..8 {
@@ -52,7 +52,10 @@ fn main() {
 
     for i in 0..8 {
         for j in 0..8 {
-            assert_eq!(calculated_truth_table[i as usize][j as usize], true_truth_table[i as usize][j as usize]);
+            assert_eq!(
+                calculated_truth_table[i as usize][j as usize],
+                true_truth_table[i as usize][j as usize]
+            );
         }
     }
 
