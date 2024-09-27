@@ -1,4 +1,4 @@
-use cc::{Alice, Bob, TrustedDealer};
+use cc::{ElGamal, Alice, Bob};
 
 fn main() {
     // This main method runs the tests from the week-3-tests.rs file, it can also be run using the command `cargo test`
@@ -32,20 +32,13 @@ fn main() {
     // Tests for every combination of inputs, using the implementation example presented in the assignment exercise
     for i in 0..8 {
         for j in 0..8 {
-            let mut dealer = TrustedDealer::new();
             let mut alice = Alice::new();
             let mut bob = Bob::new();
 
-            dealer.init();
-            alice.init(i, dealer.rand_a());
-            bob.init(j, dealer.rand_b());
-            bob.receive_input_share(alice.send_input_share());
-            alice.receive_input_share(bob.send_input_share());
-            while !alice.has_output() {
-                bob.receive(alice.send());
-                alice.receive(bob.send());
-            }
-            let z = alice.output();
+            //m1 and m2 are the tuples for the different options in OT that Alice chooses between
+            let m1 = alice.choose(i);
+            let m2 = bob.transfer(j,m1);
+            let z = alice.retrieve(m2);
             calculated_truth_table[i as usize][j as usize] = z;
         }
     }
