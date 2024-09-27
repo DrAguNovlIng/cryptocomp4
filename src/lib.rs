@@ -37,6 +37,16 @@ impl Group {
         let mut file = File::create(path).unwrap();
         file.write_all(json.as_bytes()).unwrap();
     }
+
+    pub fn gen_random_exponent(&self) -> BigUint {
+        let rng = &mut rand::thread_rng();
+        loop {
+            let r: BigUint = RandomBits::new(self.q.bits()).sample(rng);
+            if r < self.q {
+                return r;
+            }
+        }
+    }
 }
 
 /*
@@ -75,7 +85,7 @@ pub fn generate_safe_prime_group(size: u64) -> Group {
 pub type Ciphertext = (BigUint, BigUint);
 pub type Plaintext = BigUint;
 pub type SecretKey = BigUint;
-pub type PublicKey = BigUint;
+pub type PublicKey = BigUint; //We simply omit sending the group along for simplicity (we assume they agree on the group)
 
 pub struct ElGamal {
     group: Group,
@@ -100,7 +110,11 @@ impl ElGamal {
 
     //Encrypts a message using a public key
     pub fn enc(&self, pk: PublicKey, m: Plaintext) -> Ciphertext {
-        todo!()
+        let r = self.group.gen_random_exponent();
+        let c1 = self.group.g.modpow(&r, &self.group.p);
+        let hr = pk.modpow(&r, &self.group.p);
+        let c2 = m * hr; //TODO missing MODULO
+        (c1, c2)
     }
 
     //Decrypts a message using a secret key
