@@ -133,7 +133,7 @@ impl Alice {
         Self { el_gamal: ElGamal::new(common_group), input_a: false, input_b: false, input_r: false }
     }
 
-    pub fn choose(&mut self, input: u8) -> (BigUint, BigUint, BigUint, BigUint, BigUint, BigUint, BigUint, BigUint) {
+    pub fn choose(&mut self, input: u8) -> (PublicKey, PublicKey, PublicKey, PublicKey, PublicKey, PublicKey, PublicKey, PublicKey) {
             let (a, b, r) = translate_input(input);
             self.input_a = a;
             self.input_b = b;
@@ -164,7 +164,7 @@ impl Bob {
         Self { el_gamal: ElGamal::new(common_group),  input_a: false, input_b: false, input_r: false }
     }
 
-    pub fn transfer(&mut self, input: u8, m1_from_alice: (BigUint, BigUint, BigUint, BigUint, BigUint, BigUint, BigUint, BigUint)) -> (Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext) {
+    pub fn transfer(&mut self, input: u8, m1_from_alice: (PublicKey, PublicKey, PublicKey, PublicKey, PublicKey, PublicKey, PublicKey, PublicKey)) -> (Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext) {
         let (a, b, r) = translate_input(input);
         self.input_a = a;
         self.input_b = b;
