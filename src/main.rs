@@ -1,4 +1,4 @@
-use cc::{ElGamal, Alice, Bob};
+use cc::{Alice, Bob, ElGamal, Group};
 
 fn main() {
     // This main method runs the tests from the week-3-tests.rs file, it can also be run using the command `cargo test`
@@ -29,11 +29,14 @@ fn main() {
         [2, 2, 2, 2, 2, 2, 2, 2],
     ];
 
+    // To save time, we have already generated a (safe-prime) group and saved it in a file
+    let common_group = Group::new_from_file("group512.txt");
+
     // Tests for every combination of inputs, using the implementation example presented in the assignment exercise
     for i in 0..8 {
         for j in 0..8 {
-            let mut alice = Alice::new();
-            let mut bob = Bob::new();
+            let mut alice = Alice::new(common_group.clone());
+            let mut bob = Bob::new(common_group.clone());
 
             //m1 and m2 are the tuples for the different options in OT that Alice chooses between
             let m1 = alice.choose(i);
