@@ -15,9 +15,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Group {
-    g: BigUint, //generator
-    q: BigUint, //order of the group
-    p: BigUint, //prime number
+    pub g: BigUint, //generator
+    pub q: BigUint, //order of the group
+    pub p: BigUint, //prime number
 }
 
 impl Group {
@@ -71,11 +71,23 @@ pub fn generate_safe_prime_group(size: u64) -> Group {
         let q = generate_prime(size);
         let p = 2u8 * q.clone() + 1u8;
         if is_prime(&p, 10) {
-            let g = BigUint::from(2u8); //TODO I dont know if this a good generator for the group (whether it generates only a subgroup of size q, and not p)
+            let g = generate_random_safe_prime_group_element(p.clone());
             return Group { g, q, p };
         }
     }
     panic!("Could not generate a safe prime group");
+}
+
+pub fn generate_random_safe_prime_group_element(p: BigUint) -> BigUint {
+    //We do not imput r, but rely on the rand crate to sample for us.
+    let rng = &mut rand::thread_rng();
+    loop {
+        let s: BigUint = RandomBits::new(p.bits()).sample(rng);
+        if s < p {
+            let h = s.sqrt() % p;
+            return h;
+        }
+    }
 }
 
 /*
@@ -97,29 +109,40 @@ impl ElGamal {
         Self { group: group }
     }
 
+    pub fn gen_sk(&self) -> SecretKey {
+        self.group.gen_random_exponent()
+    }
+
     //Takes a secret key and outputs a corresponding public key
-    pub fn gen(&self, sk: SecretKey) -> PublicKey {
-        let h = self.group.g.clone().modpow(&sk, &self.group.p);
+    pub fn gen_pk(&self, sk: SecretKey) -> PublicKey {
+        let h = self.group.g.modpow(&sk, &self.group.p);
         h
     }
 
     //Takes some randomness and outputs a random looking public key
-    pub fn o_gen(&self, r: BigUint) -> PublicKey {
-        todo!()
+    pub fn o_gen_pk(&self) -> PublicKey {
+        generate_random_safe_prime_group_element(self.group.p.clone())
     }
 
     //Encrypts a message using a public key
     pub fn enc(&self, pk: PublicKey, m: Plaintext) -> Ciphertext {
+        let p = &self.group.p;
         let r = self.group.gen_random_exponent();
-        let c1 = self.group.g.modpow(&r, &self.group.p);
-        let hr = pk.modpow(&r, &self.group.p);
-        let c2 = m * hr; //TODO missing MODULO
+        let c1 = self.group.g.modpow(&r, p);
+        let hr = pk.modpow(&r, p);
+        let c2 = ((m % p) * (hr % p)) % p; //Might be too slow
         (c1, c2)
     }
 
     //Decrypts a message using a secret key
     pub fn dec(&self, sk: SecretKey, c: Ciphertext) -> Plaintext {
-        todo!()
+        let p = &self.group.p;
+        let c1 = c.0;
+        let c2 = c.1;
+        let sk_inv = sk.modinv(p).unwrap();
+        c1.modpow(&sk_inv, p);
+        let m = ((c2 % p) * (c1 % p)) % p; //Might be too slow
+        m
     }
 }
 

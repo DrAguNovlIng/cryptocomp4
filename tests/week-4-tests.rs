@@ -1,9 +1,29 @@
 extern crate cc;
 
 pub use cc::{Alice, Bob, ElGamal, Group};
+use num_bigint::BigUint;
+
 
 #[test]
-fn it_works() {
+fn el_gamal_correctness_test() {
+
+    let common_group = Group::new_from_file("group512.txt");
+    let elgamal = ElGamal::new(common_group.clone());
+    let h = elgamal.o_gen_pk();
+    let message = "msg"; //Note message must be smaller than q
+    let m = BigUint::from_bytes_be(message.as_bytes()) % common_group.p;
+
+    let sk = elgamal.gen_sk();
+    let pk = elgamal.gen_pk(sk.clone());
+
+    let c = elgamal.enc(pk, m.clone());
+    let decrypted_message = elgamal.dec(sk.clone(), c);
+
+    assert_eq!(decrypted_message,m);
+}
+
+#[test]
+fn full_truth_table_test() {
     // For the implementation of the structs and methods, check the lib.rs file
     // First bit indicates A, second bit B, last bit +/-
     // Example: 001 = O+, 110 = AB-
