@@ -130,7 +130,7 @@ impl ElGamal {
         let r = self.group.gen_random_exponent();
         let c1 = self.group.g.modpow(&r, p);
         let hr = pk.modpow(&r, p);
-        let c2 = ((m % p) * (hr % p)) % p; //Might be too slow
+        let c2 = ((m % p) * (hr % p)) % p; //Might be too slow for large m, but should be fine for us
         (c1, c2)
     }
 
@@ -139,9 +139,10 @@ impl ElGamal {
         let p = &self.group.p;
         let c1 = c.0;
         let c2 = c.1;
-        let sk_inv = sk.modinv(p).unwrap();
-        c1.modpow(&sk_inv, p);
-        let m = ((c2 % p) * (c1 % p)) % p; //Might be too slow
+        let hr = c1.modpow(&sk, p);
+        let hr_inv = hr.modinv(p).unwrap();
+
+        let m = ((c2 % p) * (hr_inv % p)) % p; //Might be too slow for large m, but should be fine for us
         m
     }
 }
