@@ -1,6 +1,6 @@
-use std::{fs::File, io::Write};
-use rand::prelude::Distribution;
-use num_bigint::{BigUint, RandomBits};
+use std::{array::from_fn, fs::File, io::Write};
+use rand::{prelude::Distribution, Rng, RngCore};
+use num_bigint::{BigUint, RandomBits, ToBigUint};
 use miller_rabin::is_prime;
 use serde::{Deserialize, Serialize};
 
@@ -156,30 +156,50 @@ pub struct Alice {
     input_a: bool,
     input_b: bool,
     input_r: bool,
+    sk: SecretKey
 }
 
 fn translate_input(input: u8) -> (bool, bool, bool) {
     let a = (input & 4) > 0;
-    let r = (input & 1) > 0;
     let b = (input & 2) > 0;
+    let r = (input & 1) > 0;
     (a, b, r)
+}
+
+fn translate_input_back(a: bool, b: bool, r: bool) -> u8 {
+    let mut res = 0;
+    if a { res += 4}
+    if b { res += 2}
+    if r { res += 1}
+    res
 }
 
 impl Alice {
     pub fn new(common_group: Group) -> Self {
-        Self { el_gamal: ElGamal::new(common_group), input_a: false, input_b: false, input_r: false }
+        Self { el_gamal: ElGamal::new(common_group), input_a: false, input_b: false, input_r: false, sk: BigUint::from(0u8) }
     }
 
-    pub fn choose(&mut self, input: u8) -> (PublicKey, PublicKey, PublicKey, PublicKey, PublicKey, PublicKey, PublicKey, PublicKey) {
+    pub fn choose(&mut self, input: u8) -> [PublicKey; 8] {
             let (a, b, r) = translate_input(input);
             self.input_a = a;
             self.input_b = b;
             self.input_r = r;
-            todo!()
+            self.sk = self.el_gamal.gen_sk();
+            let mut res: [PublicKey; 8] = from_fn(|_| {BigUint::from(0u8)});
+            for i in 0..8 {
+                if i != input {
+                    res[i as usize] = self.el_gamal.o_gen_pk()
+                }
+            }
+            res[input as usize] = self.el_gamal.gen_pk(self.sk.clone());
+            res
         }
 
-    pub fn retrieve(&mut self, m2: (Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext)) -> u8 {
-        todo!()
+    pub fn retrieve(&mut self, m2: [Ciphertext; 8]) -> u8 {
+        let input_index = translate_input_back(self.input_a, self.input_b, self.input_r);
+        let ciphertext = m2[input_index as usize].clone();
+        let decryption = self.el_gamal.dec(self.sk.clone(), ciphertext);
+        decryption.to_bytes_be()[0]
     }
 }
 
@@ -196,16 +216,27 @@ pub struct Bob {
     input_r: bool,
 }
 
+fn blood_function(Alice: (bool, bool, bool), Bob: (bool, bool, bool)) -> bool {
+    if Alice.0 < Bob.0 {return false}
+    if Alice.1 < Bob.1 {return false}
+    if Alice.2 < Bob.2 {return false}
+    true
+}
+
 impl Bob {
     pub fn new(common_group: Group) -> Self {
         Self { el_gamal: ElGamal::new(common_group),  input_a: false, input_b: false, input_r: false }
     }
 
-    pub fn transfer(&mut self, input: u8, m1_from_alice: (PublicKey, PublicKey, PublicKey, PublicKey, PublicKey, PublicKey, PublicKey, PublicKey)) -> (Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext, Ciphertext) {
+    pub fn transfer(&mut self, input: u8, m1_from_alice: [PublicKey; 8]) -> [Ciphertext; 8] {
         let (a, b, r) = translate_input(input);
         self.input_a = a;
         self.input_b = b;
         self.input_r = r;
-        todo!()
+        let mut res: [Ciphertext; 8] = from_fn(|_| {(BigUint::from(0u8),BigUint::from(0u8))});
+        for i in 0..8 {
+            res[i as usize] = self.el_gamal.enc(m1_from_alice[i as usize].clone(), BigUint::from(blood_function(translate_input(i), (a,b,r))))
+        }
+        res
     }
 }
