@@ -1,6 +1,6 @@
 use std::{array::from_fn, fs::File, io::Write};
-use rand::{prelude::Distribution, Rng, RngCore};
-use num_bigint::{BigUint, RandomBits, ToBigUint};
+use rand::prelude::Distribution;
+use num_bigint::{BigUint, RandomBits};
 use miller_rabin::is_prime;
 use serde::{Deserialize, Serialize};
 
@@ -217,10 +217,10 @@ pub struct Bob {
     input_r: bool,
 }
 
-fn blood_function(Alice: (bool, bool, bool), Bob: (bool, bool, bool)) -> bool {
-    if Alice.0 < Bob.0 {return false}
-    if Alice.1 < Bob.1 {return false}
-    if Alice.2 < Bob.2 {return false}
+fn blood_function(alice: (bool, bool, bool), bob: (bool, bool, bool)) -> bool {
+    if alice.0 < bob.0 {return false}
+    if alice.1 < bob.1 {return false}
+    if alice.2 < bob.2 {return false}
     true
 }
 
