@@ -31,10 +31,11 @@ fn main() {
 
     // To save time, we have already generated a (safe-prime) group and saved it in a file
     // To create a new group, uncomment the line below:
-    // Group::new(512).write_group_to_file("group512.txt");
+    //Group::new(512).write_group_to_file("group128.txt");
     let common_group = Group::new_from_file("group512.txt");
 
     // Tests for every combination of inputs, using the implementation example presented in the assignment exercise
+    
     for i in 0..8 {
         for j in 0..8 {
             let mut alice = Alice::new(common_group.clone());
@@ -56,6 +57,6 @@ fn main() {
             );
         }
     }
-
+ 
     println!("All tests passed successfully!")
 }

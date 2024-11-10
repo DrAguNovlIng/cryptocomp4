@@ -1,6 +1,6 @@
 use std::{array::from_fn, fs::File, io::Write};
 use rand::prelude::Distribution;
-use num_bigint::{BigUint, RandomBits};
+use num_bigint::{BigInt, BigUint, RandomBits, ToBigInt};
 use miller_rabin::is_prime;
 use serde::{Deserialize, Serialize};
 
@@ -15,9 +15,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Group {
-    pub g: BigUint, //generator
-    pub q: BigUint, //order of the group
-    pub p: BigUint, //prime number
+    pub g: BigInt, //generator
+    pub q: BigInt, //order of the group
+    pub p: BigInt, //prime number
 }
 
 impl Group {
@@ -38,10 +38,11 @@ impl Group {
         file.write_all(json.as_bytes()).unwrap();
     }
 
-    pub fn gen_random_exponent(&self) -> BigUint {
+    pub fn gen_random_exponent(&self) -> BigInt {
         let rng = &mut rand::thread_rng();
         loop {
-            let r: BigUint = RandomBits::new(self.q.bits()).sample(rng);
+            let random: BigUint = RandomBits::new(self.q.bits()).sample(rng);
+            let r = random.to_bigint().unwrap();
             if r < self.q {
                 return r;
             }
@@ -54,12 +55,12 @@ impl Group {
 */
 
 // Methods to generate a prime, this is done by picking a random number of the desired size and using the Miller-Rabin primality test
-pub fn generate_prime(size: u64) -> BigUint {
+pub fn generate_prime(size: u64) -> BigInt {
     for _ in 0..10000 {
         let rng = &mut rand::thread_rng();
         let maybe_prime: BigUint = RandomBits::new(size).sample(rng);
         if is_prime(&maybe_prime, 10) {
-            return maybe_prime;
+            return maybe_prime.to_bigint().unwrap();
         }
     }
     panic!("Could not generate prime number");
@@ -78,13 +79,14 @@ pub fn generate_safe_prime_group(size: u64) -> Group {
     panic!("Could not generate a safe prime group");
 }
 
-pub fn generate_random_safe_prime_group_element(p: BigUint) -> BigUint {
+pub fn generate_random_safe_prime_group_element(p: BigInt) -> BigInt {
     //We do not imput r, but rely on the rand crate to sample for us.
     let rng = &mut rand::thread_rng();
     loop {
-        let s: BigUint = RandomBits::new(p.bits()).sample(rng);
+        let random: BigUint = RandomBits::new(p.bits()).sample(rng);
+        let s = random.to_bigint().unwrap();
         if s < p {
-            let h = s.sqrt() % p;
+            let h = s.modpow(&BigInt::from(2u8), &p);
             return h;
         }
     }
@@ -94,10 +96,10 @@ pub fn generate_random_safe_prime_group_element(p: BigUint) -> BigUint {
     Implementation of ElGamal
 */
 
-pub type Ciphertext = (BigUint, BigUint);
-pub type Plaintext = BigUint;
-pub type SecretKey = BigUint;
-pub type PublicKey = BigUint; //We simply omit sending the group along for simplicity (we assume they agree on the group)
+pub type Ciphertext = (BigInt, BigInt);
+pub type Plaintext = BigInt;
+pub type SecretKey = BigInt;
+pub type PublicKey = BigInt; //We simply omit sending the group along for simplicity (we assume they agree on the group)
 
 pub struct ElGamal {
     group: Group,
@@ -124,13 +126,34 @@ impl ElGamal {
         generate_random_safe_prime_group_element(self.group.p.clone())
     }
 
+    fn encode_message(&self, m: Plaintext) -> BigInt {
+        //Encode the message to a field element
+        if (&m + BigInt::from(1u8)).modpow(&self.group.q, &self.group.p) == BigInt::from(1) {
+            return m + 1;
+        }
+        else {
+            return -m - 1;
+        }
+    }
+
+    fn decode_message(&self, encoded_m: BigInt) -> Plaintext {
+        //Decode the field element to a message
+        if encoded_m <= self.group.q {
+            return encoded_m - BigInt::from(1u8);
+        } 
+        else {
+            return -encoded_m - BigInt::from(1u8);
+        }
+    }
+
     //Encrypts a message using a public key
     pub fn enc(&self, pk: PublicKey, m: Plaintext) -> Ciphertext {
+        let encoded_m = self.encode_message(m);
         let p = &self.group.p;
         let r = self.group.gen_random_exponent();
         let c1 = self.group.g.modpow(&r, p);
         let hr = pk.modpow(&r, p);
-        let c2 = ((m % p) * (hr % p)) % p; //Might be too slow for large m, but should be fine for us
+        let c2 = ((encoded_m % p) * (hr % p)) % p; //Might be too slow for large m, but should be fine for us
         (c1, c2)
     }
 
@@ -142,8 +165,8 @@ impl ElGamal {
         let hr = c1.modpow(&sk, p);
         let hr_inv = hr.modinv(p).unwrap();
 
-        let m = ((c2 % p) * (hr_inv % p)) % p; //Might be too slow for large m, but should be fine for us
-        m
+        let encoded_m = ((c2 % p) * (hr_inv % p)) % p; //Might be too slow for large m, but should be fine for us
+        self.decode_message(encoded_m)
     }
 }
 
@@ -177,7 +200,7 @@ fn translate_input_back(a: bool, b: bool, r: bool) -> u8 {
 
 impl Alice {
     pub fn new(common_group: Group) -> Self {
-        Self { el_gamal: ElGamal::new(common_group), input_a: false, input_b: false, input_r: false, sk: BigUint::from(0u8) }
+        Self { el_gamal: ElGamal::new(common_group), input_a: false, input_b: false, input_r: false, sk: BigInt::from(0u8) }
     }
 
     pub fn choose(&mut self, input: u8) -> [PublicKey; 8] {
@@ -186,7 +209,7 @@ impl Alice {
             self.input_b = b;
             self.input_r = r;
             self.sk = self.el_gamal.gen_sk();
-            let mut res: [PublicKey; 8] = from_fn(|_| {BigUint::from(0u8)});
+            let mut res: [PublicKey; 8] = from_fn(|_| {BigInt::from(0u8)});
             for i in 0..8 {
                 if i != input {
                     res[i as usize] = self.el_gamal.o_gen_pk()
@@ -200,7 +223,7 @@ impl Alice {
         let input_index = translate_input_back(self.input_a, self.input_b, self.input_r);
         let ciphertext = m2[input_index as usize].clone();
         let decryption = self.el_gamal.dec(self.sk.clone(), ciphertext);
-        decryption.to_bytes_be()[0]
+        decryption.to_bytes_be().1[0] //We know it is 0 or 1 at this point, so this is safe
     }
 }
 
@@ -234,9 +257,9 @@ impl Bob {
         self.input_a = a;
         self.input_b = b;
         self.input_r = r;
-        let mut res: [Ciphertext; 8] = from_fn(|_| {(BigUint::from(0u8),BigUint::from(0u8))});
+        let mut res: [Ciphertext; 8] = from_fn(|_| {(BigInt::from(0u8),BigInt::from(0u8))});
         for i in 0..8 {
-            res[i as usize] = self.el_gamal.enc(m1_from_alice[i as usize].clone(), BigUint::from(blood_function(translate_input(i), (a,b,r))))
+            res[i as usize] = self.el_gamal.enc(m1_from_alice[i as usize].clone(), BigInt::from(blood_function(translate_input(i), (a,b,r))))
         }
         res
     }

@@ -1,7 +1,7 @@
 extern crate cc;
 
 pub use cc::{Alice, Bob, ElGamal, Group};
-use num_bigint::BigUint;
+use num_bigint::BigInt;
 
 
 #[test]
@@ -10,7 +10,7 @@ fn el_gamal_correctness_test() {
     let common_group = Group::new_from_file("group512.txt");
     let elgamal = ElGamal::new(common_group.clone());
     let message = "Some small message"; //Note message must be smaller than q
-    let m = BigUint::from_bytes_be(message.as_bytes()) % common_group.p;
+    let m = BigInt::from_bytes_be(num_bigint::Sign::Plus,message.as_bytes()) % common_group.p;
 
     let sk = elgamal.gen_sk();
     let pk = elgamal.gen_pk(sk.clone());
